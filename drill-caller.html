@@ -1,0 +1,1410 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Drill Command Caller — Platoon Regulation</title>
+<style>
+  :root{
+    --bg:#f4f5f2;
+    --panel:#ffffff;
+    --panel-2:#eceee8;
+    --ink:#13160f;
+    --ink-soft:#5a6052;
+    --line:#d3d7cb;
+    --accent:#3f5d2e;
+    --accent-ink:#ffffff;
+    --accent-soft:#e6ecdd;
+    --warn:#8a4a12;
+    --gold:#8a7413;
+    --shadow:0 1px 2px rgba(0,0,0,.06),0 8px 24px rgba(0,0,0,.06);
+    --radius:14px;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg:#111310;
+      --panel:#1b1e19;
+      --panel-2:#242821;
+      --ink:#eef0ea;
+      --ink-soft:#9aa392;
+      --line:#333828;
+      --accent:#8fb96a;
+      --accent-ink:#11140e;
+      --accent-soft:#232a1b;
+      --warn:#e0a463;
+      --gold:#d8c25e;
+      --shadow:0 1px 2px rgba(0,0,0,.4),0 8px 24px rgba(0,0,0,.35);
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#111310;
+    --panel:#1b1e19;
+    --panel-2:#242821;
+    --ink:#eef0ea;
+    --ink-soft:#9aa392;
+    --line:#333828;
+    --accent:#8fb96a;
+    --accent-ink:#11140e;
+    --accent-soft:#232a1b;
+    --warn:#e0a463;
+    --gold:#d8c25e;
+    --shadow:0 1px 2px rgba(0,0,0,.4),0 8px 24px rgba(0,0,0,.35);
+  }
+
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    background:var(--bg);
+    color:var(--ink);
+    font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+    line-height:1.45;
+    -webkit-text-size-adjust:100%;
+    padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+  }
+  .wrap{max-width:860px;margin:0 auto;padding:18px 16px 64px}
+
+  header.top{display:flex;align-items:flex-start;gap:12px;margin-bottom:16px;flex-wrap:wrap}
+  .brand{flex:1 1 240px;min-width:0}
+  h1{font-size:1.15rem;margin:0;letter-spacing:.02em;text-transform:uppercase;font-weight:750}
+  .sub{margin:2px 0 0;color:var(--ink-soft);font-size:.82rem}
+  .ghost-btn{
+    background:var(--panel);color:var(--ink);border:1px solid var(--line);
+    border-radius:999px;padding:7px 13px;font-size:.78rem;cursor:pointer;font-weight:600;
+  }
+  .ghost-btn:active{transform:translateY(1px)}
+
+  /* ---- Stage ---- */
+  .stage{
+    background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);
+    box-shadow:var(--shadow);padding:22px 18px 18px;text-align:center;position:relative;overflow:hidden;
+  }
+  .stage-label{font-size:.68rem;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-soft);font-weight:700}
+  .command{
+    font-size:clamp(1.7rem,8.5vw,3.4rem);
+    font-weight:800;line-height:1.08;margin:10px 0 4px;letter-spacing:.01em;
+    min-height:1.1em;word-break:break-word;text-transform:uppercase;
+  }
+  .command.speaking{color:var(--accent)}
+  .stepline{color:var(--ink-soft);font-size:.8rem;min-height:1.2em}
+  .bar{height:6px;background:var(--panel-2);border-radius:99px;margin:16px 0 4px;overflow:hidden}
+  .bar>i{display:block;height:100%;width:0;background:var(--accent);border-radius:99px;transition:width .1s linear}
+  .nextin{font-size:.75rem;color:var(--ink-soft);min-height:1.1em}
+
+  .controls{display:flex;gap:10px;justify-content:center;margin-top:16px;flex-wrap:wrap}
+  .btn{
+    border:0;border-radius:999px;padding:13px 26px;font-size:1rem;font-weight:750;cursor:pointer;
+    background:var(--accent);color:var(--accent-ink);min-width:132px;letter-spacing:.02em;
+  }
+  .btn.secondary{background:var(--panel-2);color:var(--ink);border:1px solid var(--line)}
+  .btn:active{transform:translateY(1px)}
+  .btn:disabled{opacity:.45;cursor:not-allowed}
+
+  .banner{
+    margin-top:12px;background:var(--accent-soft);border:1px solid var(--line);
+    border-radius:10px;padding:10px 12px;font-size:.78rem;color:var(--ink-soft);text-align:left;
+  }
+
+  /* ---- Panels ---- */
+  section.card{
+    background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);
+    box-shadow:var(--shadow);margin-top:16px;overflow:hidden;
+  }
+  .card > h2{
+    margin:0;font-size:.74rem;letter-spacing:.16em;text-transform:uppercase;font-weight:750;
+    padding:13px 16px;border-bottom:1px solid var(--line);background:var(--panel-2);color:var(--ink-soft);
+    display:flex;align-items:center;justify-content:space-between;gap:10px;cursor:pointer;user-select:none;
+  }
+  .card > h2 .chev{transition:transform .18s ease;font-size:.9rem}
+  .card.collapsed > h2 .chev{transform:rotate(-90deg)}
+  .card.collapsed .body{display:none}
+  .body{padding:16px}
+
+  .row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:16px}
+  .row:last-child{margin-bottom:0}
+  label.lbl{font-size:.82rem;font-weight:650;min-width:112px}
+  .hint{font-size:.74rem;color:var(--ink-soft);width:100%;margin-top:-8px;margin-bottom:14px}
+
+  .seg{display:inline-flex;background:var(--panel-2);border:1px solid var(--line);border-radius:999px;padding:3px;gap:3px;flex-wrap:wrap}
+  .seg button{
+    border:0;background:transparent;color:var(--ink-soft);padding:8px 14px;border-radius:999px;
+    font-size:.8rem;font-weight:650;cursor:pointer;
+  }
+  .seg button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink)}
+
+  input[type=range]{flex:1 1 150px;min-width:120px;accent-color:var(--accent)}
+  input[type=number]{
+    width:76px;padding:8px;border-radius:9px;border:1px solid var(--line);
+    background:var(--panel-2);color:var(--ink);font-size:.9rem;font-family:inherit;
+  }
+  select{
+    padding:9px;border-radius:9px;border:1px solid var(--line);background:var(--panel-2);
+    color:var(--ink);font-size:.85rem;max-width:100%;font-family:inherit;flex:1 1 180px;
+  }
+  .val{font-variant-numeric:tabular-nums;font-size:.85rem;color:var(--ink-soft);min-width:58px;text-align:right;font-weight:650}
+
+  /* ---- Command list ---- */
+  .toolbar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+  .chip{
+    background:var(--panel-2);border:1px solid var(--line);color:var(--ink);
+    border-radius:999px;padding:7px 12px;font-size:.76rem;cursor:pointer;font-weight:650;
+  }
+  .chip:active{transform:translateY(1px)}
+  .group-title{
+    font-size:.68rem;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-soft);
+    font-weight:750;margin:16px 0 8px;padding-bottom:5px;border-bottom:1px solid var(--line);
+  }
+  .group-title:first-child{margin-top:0}
+  .cmds{display:grid;grid-template-columns:repeat(auto-fill,minmax(215px,1fr));gap:7px}
+  .cmd{
+    display:flex;align-items:center;gap:10px;padding:9px 11px;border:1px solid var(--line);
+    border-radius:10px;background:var(--panel-2);cursor:pointer;font-size:.85rem;
+  }
+  .cmd input{accent-color:var(--accent);width:17px;height:17px;flex:none;cursor:pointer}
+  .cmd span{line-height:1.25}
+  .cmd.off{opacity:.45}
+
+  .count{font-size:.78rem;color:var(--ink-soft);margin-top:14px;font-weight:650}
+
+  /* ---- Custom commands ---- */
+  .addrow{display:flex;gap:8px;flex-wrap:wrap}
+  input[type=text]{
+    flex:1 1 220px;min-width:0;padding:11px 12px;border-radius:10px;border:1px solid var(--line);
+    background:var(--panel-2);color:var(--ink);font-size:.95rem;font-family:inherit;
+  }
+  input[type=text]:focus{outline:2px solid var(--accent);outline-offset:1px}
+  .addrow .btn{padding:11px 20px;font-size:.9rem;min-width:0}
+  .cmd .del{
+    margin-left:auto;border:0;background:transparent;color:var(--ink-soft);cursor:pointer;
+    font-size:1.05rem;line-height:1;padding:3px 5px;border-radius:7px;flex:none;
+  }
+  .cmd .del:hover{background:var(--panel);color:var(--warn)}
+  .custom-note{font-size:.74rem;color:var(--ink-soft);margin:10px 0 0}
+
+  /* ---- Help & video reference ---- */
+  .helpgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:7px}
+  .hbtn{
+    text-align:left;border:1px solid var(--line);background:var(--panel-2);color:var(--ink);
+    border-radius:10px;padding:10px 11px;font-size:.84rem;cursor:pointer;font-family:inherit;
+    display:flex;align-items:center;gap:8px;line-height:1.25;
+  }
+  .hbtn:active{transform:translateY(1px)}
+  .hbtn[aria-pressed="true"]{border-color:var(--accent);background:var(--accent-soft)}
+  .dot{width:8px;height:8px;border-radius:50%;flex:none;background:var(--line)}
+  .dot.has{background:var(--accent)}
+  .detail{
+    margin-top:16px;border:1px solid var(--line);border-radius:12px;
+    background:var(--panel-2);padding:14px;
+  }
+  .detail h3{margin:0 0 3px;font-size:1.02rem;text-transform:uppercase;letter-spacing:.02em}
+  .detail .meta{font-size:.74rem;color:var(--ink-soft);margin:0 0 12px}
+  .frame{position:relative;width:100%;padding-top:56.25%;background:#000;border-radius:10px;overflow:hidden;margin-bottom:10px}
+  .frame iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
+  .novid{
+    border:1px dashed var(--line);border-radius:10px;padding:16px;text-align:center;
+    color:var(--ink-soft);font-size:.82rem;margin-bottom:10px;
+  }
+  .linkout{
+    display:inline-block;color:var(--accent);font-size:.8rem;font-weight:650;
+    text-decoration:none;border-bottom:1px solid var(--accent);
+  }
+  .detail .addrow{margin-top:12px}
+  .mini{font-size:.72rem;color:var(--ink-soft);margin:8px 0 0}
+  .filterbox{margin-bottom:12px}
+  textarea.share{
+    width:100%;min-height:80px;padding:10px;border-radius:10px;border:1px solid var(--line);
+    background:var(--panel-2);color:var(--ink);font-size:.78rem;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
+    resize:vertical;
+  }
+
+  table.log{width:100%;border-collapse:collapse;font-size:.83rem}
+  table.log td{padding:6px 4px;border-bottom:1px solid var(--line)}
+  table.log td:first-child{color:var(--ink-soft);width:44px;font-variant-numeric:tabular-nums}
+  .empty{color:var(--ink-soft);font-size:.82rem}
+
+  footer{margin-top:24px;color:var(--ink-soft);font-size:.74rem;text-align:center;line-height:1.6}
+  .kbd{background:var(--panel-2);border:1px solid var(--line);border-radius:5px;padding:1px 6px;font-size:.72rem;font-weight:650}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="top">
+    <div class="brand">
+      <h1>Drill Command Caller</h1>
+      <p class="sub">2026 Army JROTC Nationals &middot; Unarmed Platoon Regulation</p>
+    </div>
+    <button class="ghost-btn" id="themeBtn" type="button">Theme</button>
+  </header>
+
+  <div class="stage">
+    <div class="stage-label" id="stageLabel">Ready</div>
+    <div class="command" id="commandText">—</div>
+    <div class="stepline" id="stepLine">Pick your settings below, then hit Start.</div>
+    <div class="bar"><i id="barFill"></i></div>
+    <div class="nextin" id="nextIn">&nbsp;</div>
+    <div class="controls">
+      <button class="btn" id="startBtn" type="button">Start</button>
+      <button class="btn secondary" id="stopBtn" type="button" disabled>Stop</button>
+    </div>
+    <div class="banner" id="banner" hidden></div>
+  </div>
+
+  <section class="card" id="timingCard">
+    <h2>Timing <span class="chev">&#9662;</span></h2>
+    <div class="body">
+      <div class="row">
+        <label class="lbl">Spacing</label>
+        <div class="seg" role="group">
+          <button type="button" data-gapmode="fixed" aria-pressed="true">Fixed</button>
+          <button type="button" data-gapmode="random" aria-pressed="false">Random range</button>
+        </div>
+      </div>
+
+      <div class="row" id="fixedRow">
+        <label class="lbl" for="fixedGap">Seconds between</label>
+        <input type="range" id="fixedGap" min="1" max="30" step="0.5" value="5">
+        <span class="val" id="fixedGapVal">5.0s</span>
+      </div>
+
+      <div class="row" id="randomRow" hidden>
+        <label class="lbl">Between</label>
+        <input type="number" id="minGap" min="0.5" max="60" step="0.5" value="2"> s
+        <span style="color:var(--ink-soft)">and</span>
+        <input type="number" id="maxGap" min="0.5" max="60" step="0.5" value="8"> s
+      </div>
+      <p class="hint">The gap is measured from the end of one command to the start of the next, so a long command never eats your spacing.</p>
+
+      <div class="row">
+        <label class="lbl" for="leadIn">Lead-in</label>
+        <input type="range" id="leadIn" min="0" max="20" step="1" value="5">
+        <span class="val" id="leadInVal">5s</span>
+      </div>
+      <p class="hint">Delay before the first command, so you can get into position after pressing Start.</p>
+
+      <div class="row">
+        <label class="lbl" for="limit">Stop after</label>
+        <input type="number" id="limit" min="0" max="999" step="1" value="0">
+        <span style="color:var(--ink-soft);font-size:.82rem">commands (0 = keep going until you stop)</span>
+      </div>
+    </div>
+  </section>
+
+  <section class="card" id="orderCard">
+    <h2>Order <span class="chev">&#9662;</span></h2>
+    <div class="body">
+      <div class="row">
+        <label class="lbl">Call order</label>
+        <div class="seg" role="group">
+          <button type="button" data-order="card" aria-pressed="true">Card sequence</button>
+          <button type="button" data-order="random" aria-pressed="false">Randomized</button>
+          <button type="button" data-order="shuffle" aria-pressed="false">Shuffled deck</button>
+        </div>
+      </div>
+      <p class="hint" id="orderHint"></p>
+      <div class="row" id="loopRow">
+        <label class="cmd" style="max-width:280px">
+          <input type="checkbox" id="loopChk" checked>
+          <span>Repeat from the top when the sequence finishes</span>
+        </label>
+      </div>
+    </div>
+  </section>
+
+  <section class="card" id="pairsCard">
+    <h2>Pairs &amp; holds <span class="chev">&#9662;</span></h2>
+    <div class="body">
+      <p class="hint" style="margin-top:0">Pair a command that has to be held — like Present, ARMS — with the command that releases it, like Order, ARMS. Once paired, the release won't get called on its own; it only fires once its start command has actually happened.</p>
+      <div id="pairsList"></div>
+
+      <div class="group-title" style="margin-top:18px">Add a pair</div>
+      <div class="row">
+        <label class="lbl" for="pairStart">Start command</label>
+        <select id="pairStart"></select>
+      </div>
+      <div class="row">
+        <label class="lbl" for="pairRelease">Releases with</label>
+        <select id="pairRelease"></select>
+      </div>
+      <div class="row">
+        <label class="lbl">Timing</label>
+        <div class="seg" role="group">
+          <button type="button" data-pairmode="instant" aria-pressed="true">Instant</button>
+          <button type="button" data-pairmode="hold" aria-pressed="false">Hold test</button>
+        </div>
+      </div>
+      <p class="hint" id="pairModeHint">Instant: the release is called right after the start, same as the card. Hold test: the release is deliberately delayed, so the platoon has to hold position without knowing exactly when it's coming — a reminder shows on screen the whole time, but nothing is said out loud.</p>
+      <div class="row" id="pairHoldRow" hidden>
+        <label class="lbl">Delay by</label>
+        <input type="number" id="pairMin" min="1" max="20" value="2"> to
+        <input type="number" id="pairMax" min="1" max="20" value="5">
+        <span style="color:var(--ink-soft);font-size:.82rem">other commands</span>
+      </div>
+      <div class="row">
+        <button class="btn" id="pairAddBtn" type="button">Add pair</button>
+      </div>
+    </div>
+  </section>
+
+  <section class="card" id="voiceCard">
+    <h2>Voice <span class="chev">&#9662;</span></h2>
+    <div class="body">
+      <div class="row">
+        <label class="lbl" for="volume">Volume</label>
+        <input type="range" id="volume" min="0" max="1" step="0.05" value="1">
+        <span class="val" id="volumeVal">100%</span>
+      </div>
+      <div class="row">
+        <label class="lbl" for="rate">Speed</label>
+        <input type="range" id="rate" min="0.6" max="1.8" step="0.05" value="1.05">
+        <span class="val" id="rateVal">1.05x</span>
+      </div>
+      <div class="row">
+        <label class="lbl" for="pitch">Pitch</label>
+        <input type="range" id="pitch" min="0.4" max="1.6" step="0.05" value="0.85">
+        <span class="val" id="pitchVal">0.85</span>
+      </div>
+      <div class="row">
+        <label class="lbl" for="voiceSel">Voice</label>
+        <select id="voiceSel"><option>Loading voices…</option></select>
+      </div>
+      <div class="row">
+        <button class="chip" id="testBtn" type="button">Test voice</button>
+        <button class="chip" id="resetVoice" type="button">Reset voice settings</button>
+      </div>
+      <p class="hint">Turn your phone's ringer/media volume all the way up too — this slider only scales what the browser sends out. A lower pitch and a slightly faster speed sound the most like a real commander.</p>
+    </div>
+  </section>
+
+  <section class="card" id="listCard">
+    <h2>Commands <span class="chev">&#9662;</span></h2>
+    <div class="body">
+      <div class="addrow">
+        <input type="text" id="customInput" placeholder="Type a new command, e.g. Column Half Right, MARCH" autocomplete="off" spellcheck="false">
+        <button class="btn" id="addBtn" type="button">Add</button>
+      </div>
+      <p class="custom-note">Adds to your list and gets called like any other. Paste several at once by separating them with a new line, a semicolon, or a slash. Your additions save on this device — write it the way you want it said, commas included.</p>
+
+      <div class="toolbar" style="margin-top:14px">
+        <button class="chip" data-preset="all" type="button">All on</button>
+        <button class="chip" data-preset="none" type="button">All off</button>
+        <button class="chip" data-preset="facing" type="button">Facing only</button>
+        <button class="chip" data-preset="marching" type="button">Marching only</button>
+        <button class="chip" data-preset="stationary" type="button">Stationary only</button>
+        <button class="chip" data-preset="column" type="button">Column &amp; flank only</button>
+      </div>
+      <div id="cmdList"></div>
+      <div class="count" id="enabledCount"></div>
+    </div>
+  </section>
+
+  <section class="card collapsed" id="helpCard">
+    <h2>Help &amp; video reference <span class="chev">&#9662;</span></h2>
+    <div class="body">
+      <input type="text" id="helpFilter" class="filterbox" placeholder="Filter commands…" autocomplete="off">
+      <div class="helpgrid" id="helpGrid"></div>
+      <div class="detail" id="helpDetail" hidden></div>
+
+      <div class="group-title" style="margin-top:20px">Add a command + video</div>
+      <div class="addrow">
+        <input type="text" id="helpNewName" placeholder="Command name" autocomplete="off">
+      </div>
+      <div class="addrow" style="margin-top:8px">
+        <input type="text" id="helpNewUrl" placeholder="Video link (YouTube, Vimeo, Drive…)" autocomplete="off" spellcheck="false">
+        <button class="btn" id="helpAddBtn" type="button">Add</button>
+      </div>
+      <p class="mini">This adds the command to your caller list <em>and</em> pins the video to it. To attach a video to a command that already exists, just tap it above instead.</p>
+
+      <div class="group-title" style="margin-top:20px">Share your video library</div>
+      <div class="toolbar">
+        <button class="chip" id="exportBtn" type="button">Copy library</button>
+        <button class="chip" id="importBtn" type="button">Load library</button>
+        <button class="chip" id="clearVidBtn" type="button">Clear all videos</button>
+      </div>
+      <textarea class="share" id="shareBox" placeholder="Paste a teammate's library code here, then hit Load library." spellcheck="false"></textarea>
+      <p class="mini">Videos save on this device only. Hit Copy library to get a code you can paste into the team chat — whoever loads it gets every link you've pinned.</p>
+    </div>
+  </section>
+
+  <section class="card collapsed" id="histCard">
+    <h2>Called this run <span class="chev">&#9662;</span></h2>
+    <div class="body">
+      <div id="history"><p class="empty">Nothing called yet.</p></div>
+    </div>
+  </section>
+
+  <footer>
+    Keep this tab open and your screen awake while practicing. <span class="kbd">Space</span> starts and stops on a keyboard.<br>
+    Settings save on this device automatically.
+  </footer>
+</div>
+
+<script>
+"use strict";
+
+/* ------------------------------------------------------------------
+   COMMAND BANK — every unique command on the Platoon Regulation card
+   ------------------------------------------------------------------ */
+const COMMANDS = [
+  // Stationary / preparatory
+  {id:"atten",    label:"Platoon, ATTENTION",           say:"Platoon, ATTENTION",                      g:"stationary"},
+  {id:"rest",     label:"Parade, REST",                 say:"Parade, REST",                            g:"stationary"},
+  {id:"countoff", label:"COUNT OFF",                    say:"Count, OFF",                              g:"stationary"},
+  {id:"present",  label:"PRESENT ARMS",                 say:"Present, ARMS",                           g:"stationary"},
+  {id:"order",    label:"Order, ARMS",                  say:"Order, ARMS",                             g:"stationary"},
+  {id:"eyesR",    label:"Eyes, RIGHT",                  say:"Eyes, RIGHT",                             g:"stationary"},
+  {id:"ready",    label:"Ready, FRONT",                 say:"Ready, FRONT",                            g:"stationary"},
+
+  // Facings
+  {id:"rFace",    label:"Right, FACE",                  say:"Right, FACE",                             g:"facing"},
+  {id:"lFace",    label:"Left, FACE",                   say:"Left, FACE",                              g:"facing"},
+  {id:"about",    label:"About, FACE",                  say:"About, FACE",                             g:"facing"},
+
+  // Formation / interval
+  {id:"closeInt", label:"Close Interval, MARCH",        say:"At close interval, MARCH",                g:"formation"},
+  {id:"normInt",  label:"Normal Interval, MARCH",       say:"At normal interval, MARCH",               g:"formation"},
+  {id:"openR",    label:"Open Ranks, MARCH",            say:"Open ranks, MARCH",                       g:"formation"},
+  {id:"closeR",   label:"Close Ranks, MARCH",           say:"Close ranks, MARCH",                      g:"formation"},
+  {id:"fileR",    label:"File from the Right, MARCH",   say:"File from the right, column right, MARCH",g:"formation"},
+  {id:"col3s",    label:"Column of Threes to the Right, MARCH", say:"Column of threes to the right, MARCH", g:"formation"},
+
+  // Marching
+  {id:"fwd",      label:"Forward, MARCH",               say:"Forward, MARCH",                          g:"marching"},
+  {id:"halt",     label:"Platoon, HALT",                say:"Platoon, HALT",                           g:"marching"},
+  {id:"rear",     label:"Rear, MARCH",                  say:"Rear, MARCH",                             g:"marching"},
+  {id:"changeStep",label:"Change Step, MARCH",          say:"Change step, MARCH",                      g:"marching"},
+  {id:"markTime", label:"Mark Time, MARCH",             say:"Mark time, MARCH",                        g:"marching"},
+  {id:"halfStep", label:"Half Step, MARCH",             say:"Half step, MARCH",                        g:"marching"},
+  {id:"lStep",    label:"Left Step, MARCH",             say:"Left step, MARCH",                        g:"marching"},
+  {id:"rStep",    label:"Right Step, MARCH",            say:"Right step, MARCH",                       g:"marching"},
+
+  // Column & flank
+  {id:"colL",     label:"Column Left, MARCH",           say:"Column left, MARCH",                      g:"column"},
+  {id:"colR",     label:"Column Right, MARCH",          say:"Column right, MARCH",                     g:"column"},
+  {id:"colHalfL", label:"Column Half Left, MARCH",      say:"Column half left, MARCH",                 g:"column"},
+  {id:"counterCol",label:"Counter Column, MARCH",       say:"Counter column, MARCH",                   g:"column"},
+  {id:"lFlank",   label:"Left Flank, MARCH",            say:"Left flank, MARCH",                       g:"column"},
+  {id:"rFlank",   label:"Right Flank, MARCH",           say:"Right flank, MARCH",                      g:"column"},
+
+  // Verbal / admin
+  {id:"reportIn", label:"Report IN (verbal)",           say:"Report in",                               g:"verbal"},
+  {id:"reportOut",label:"Report OUT (verbal)",          say:"Report out",                              g:"verbal"},
+  {id:"depart",   label:"Depart the Drill Pad",         say:"Depart the drill pad",                    g:"verbal"}
+];
+
+const GROUPS = [
+  ["stationary","Stationary &amp; manual of arms"],
+  ["facing","Facing movements"],
+  ["formation","Formation &amp; interval"],
+  ["marching","Marching &amp; steps"],
+  ["column","Column &amp; flanking"],
+  ["verbal","Verbal / administrative"],
+  ["custom","Your own commands"]
+];
+
+/* Official card order, steps 1–59 (repeats included on purpose) */
+const CARD_SEQUENCE = [
+  "fwd","colL","reportIn","rest","atten","present","order","countoff","closeInt","normInt",
+  "rFace","lFace","openR","closeR","lStep","lFace","rStep","about","fwd","colR",
+  "colR","colR","lFlank","rFlank","halt","colL","rear","rear","halt","fileR",
+  "halt","col3s","colL","changeStep","markTime","halt","fwd","colL","counterCol","counterCol",
+  "colL","colHalfL","colHalfL","rear","rear","halt","fwd","eyesR","ready","colL",
+  "halfStep","fwd","colL","lFlank","rFlank","halt","lFace","reportOut","depart"
+];
+
+/* Built-in bank plus anything the user has added on this device */
+function allCommands(){
+  const custom = (S && Array.isArray(S.custom)) ? S.custom : [];
+  return COMMANDS.concat(custom.map(c => ({id:c.id, label:c.label, say:c.say || c.label, g:"custom", custom:true})));
+}
+function cmdById(id){ return allCommands().find(c => c.id === id) || null; }
+
+/* ------------------------------------------------------------------
+   Settings
+   ------------------------------------------------------------------ */
+const DEFAULTS = {
+  gapMode:"fixed", fixedGap:5, minGap:2, maxGap:8, leadIn:5, limit:0,
+  order:"card", loop:true,
+  volume:1, rate:1.05, pitch:0.85, voiceURI:"",
+  enabled:COMMANDS.map(c=>c.id),
+  custom:[],
+  videos:{},
+  pairs:[],
+  theme:"auto"
+};
+let S = Object.assign({}, DEFAULTS);
+
+function loadSettings(){
+  try{
+    const raw = localStorage.getItem("drillCaller.v1");
+    if(raw){
+      const parsed = JSON.parse(raw);
+      if(parsed && typeof parsed === "object"){
+        S = Object.assign({}, DEFAULTS, parsed);
+        if(!Array.isArray(S.custom)) S.custom = [];
+        if(!S.videos || typeof S.videos !== "object" || Array.isArray(S.videos)) S.videos = {};
+        S.custom = S.custom
+          .filter(c => c && typeof c.id === "string" && typeof c.label === "string" && c.label.trim())
+          .map(c => ({id:c.id, label:String(c.label).slice(0,120), say:String(c.say || c.label).slice(0,120)}));
+        if(!Array.isArray(S.enabled)) S.enabled = DEFAULTS.enabled.slice();
+        S.enabled = S.enabled.filter(id => cmdById(id));
+        if(!Array.isArray(S.pairs)) S.pairs = [];
+        S.pairs = S.pairs
+          .filter(p => p && typeof p === "object" && cmdById(p.startId) && cmdById(p.releaseId) && p.startId !== p.releaseId)
+          .map(p => ({
+            id: typeof p.id === "string" ? p.id : ("p" + Math.random().toString(36).slice(2,9)),
+            startId: p.startId, releaseId: p.releaseId,
+            mode: p.mode === "hold" ? "hold" : "instant",
+            minHold: Math.max(1, Math.min(20, Number(p.minHold) || 2)),
+            maxHold: Math.max(1, Math.min(20, Number(p.maxHold) || 5))
+          }));
+      }
+    }
+  }catch(e){ /* storage unavailable — run with defaults */ }
+}
+function saveSettings(){
+  try{ localStorage.setItem("drillCaller.v1", JSON.stringify(S)); }catch(e){}
+}
+loadSettings();
+
+/* ------------------------------------------------------------------
+   Element handles
+   ------------------------------------------------------------------ */
+const $ = id => document.getElementById(id);
+const elCommand = $("commandText"), elStep = $("stepLine"), elStage = $("stageLabel");
+const elBar = $("barFill"), elNextIn = $("nextIn"), elBanner = $("banner");
+const startBtn = $("startBtn"), stopBtn = $("stopBtn");
+
+/* ------------------------------------------------------------------
+   Speech
+   ------------------------------------------------------------------ */
+const synth = window.speechSynthesis;
+let voices = [];
+
+function refreshVoices(){
+  if(!synth) return;
+  voices = synth.getVoices().filter(v => !v.lang || /^en/i.test(v.lang));
+  if(!voices.length) voices = synth.getVoices();
+  const sel = $("voiceSel");
+  sel.innerHTML = "";
+  if(!voices.length){
+    sel.innerHTML = '<option value="">System default</option>';
+    return;
+  }
+  const def = document.createElement("option");
+  def.value = ""; def.textContent = "System default";
+  sel.appendChild(def);
+  voices.forEach(v=>{
+    const o = document.createElement("option");
+    o.value = v.voiceURI;
+    o.textContent = v.name + (v.lang ? " (" + v.lang + ")" : "");
+    sel.appendChild(o);
+  });
+  sel.value = voices.some(v=>v.voiceURI===S.voiceURI) ? S.voiceURI : "";
+}
+if(synth){
+  refreshVoices();
+  synth.addEventListener?.("voiceschanged", refreshVoices);
+  if("onvoiceschanged" in synth) synth.onvoiceschanged = refreshVoices;
+}
+
+function speak(text, onDone){
+  if(!synth){ if(onDone) setTimeout(onDone, 800); return; }
+  try{ synth.cancel(); }catch(e){}
+  const u = new SpeechSynthesisUtterance(text);
+  u.volume = Number(S.volume);
+  u.rate   = Number(S.rate);
+  u.pitch  = Number(S.pitch);
+  const v = voices.find(x=>x.voiceURI===S.voiceURI);
+  if(v) u.voice = v;
+  let finished = false;
+  const done = ()=>{ if(finished) return; finished = true; clearTimeout(watchdog); if(onDone) onDone(); };
+  u.onend = done;
+  u.onerror = done;
+  // Fallback in case onend never fires (happens on some mobile browsers)
+  const est = Math.max(1600, (text.length * 95) / Math.max(0.6, Number(S.rate)) + 1200);
+  const watchdog = setTimeout(done, est);
+  try{ synth.speak(u); }
+  catch(e){ done(); }
+}
+
+/* Chrome pauses synthesis when it idles — nudge it awake */
+setInterval(()=>{
+  if(running && synth && synth.paused){ try{ synth.resume(); }catch(e){} }
+}, 4000);
+
+/* ------------------------------------------------------------------
+   Runner
+   ------------------------------------------------------------------ */
+let running = false;
+let timerId = null, tickId = null;
+let queue = [], qIndex = 0, calledCount = 0, lastId = null;
+let history = [];
+let activeHold = null; // {pairId, releaseId, startLabel, releaseLabel, remaining, forceNow}
+
+function randInt(min, max){
+  min = Math.min(min, max); max = Math.max(min, max);
+  return Math.floor(min + Math.random()*(max - min + 1));
+}
+function pairByStart(id){ return S.pairs.find(p => p.startId === id) || null; }
+function pairByRelease(id){ return S.pairs.find(p => p.releaseId === id) || null; }
+
+function enabledIds(){ return allCommands().filter(c=>S.enabled.includes(c.id)).map(c=>c.id); }
+
+function buildQueue(){
+  const on = enabledIds();
+  if(!on.length) return [];
+  if(S.order === "card"){
+    // Official card order, then any of your own commands tacked on the end
+    const seq = CARD_SEQUENCE.filter(id => on.includes(id))
+      .concat(on.filter(id => !CARD_SEQUENCE.includes(id)));
+    return seq.length ? seq : on.slice();
+  }
+  if(S.order === "shuffle"){
+    const a = on.slice();
+    for(let i=a.length-1;i>0;i--){ const j = Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; }
+    return a;
+  }
+  return on.slice(); // "random" picks live
+}
+
+function pickNext(){
+  if(S.order === "random"){
+    const on = enabledIds();
+    if(!on.length) return null;
+    if(on.length === 1) return on[0];
+    let id, guard = 0;
+    do { id = on[Math.floor(Math.random()*on.length)]; guard++; }
+    while(id === lastId && guard < 25);
+    return id;
+  }
+  if(qIndex >= queue.length){
+    if(!S.loop) return null;
+    if(S.order === "shuffle") queue = buildQueue();
+    qIndex = 0;
+  }
+  return queue[qIndex++] || null;
+}
+
+/* Picks the next id, but won't let a pending release fire early,
+   and won't start a second pair while one is already being held. */
+function nextCommandId(){
+  if(activeHold && activeHold.forceNow){
+    const rid = activeHold.releaseId;
+    if(S.order !== "random"){
+      const idx = queue.indexOf(rid, qIndex);
+      if(idx !== -1) queue.splice(idx, 1);
+    }
+    return rid;
+  }
+  let id = pickNext();
+  let guard = 0;
+  while(activeHold && id != null && (id === activeHold.releaseId || pairByStart(id)) && guard < 60){
+    if(S.order === "random"){
+      id = pickNext();
+    }else{
+      queue.push(id);   // send it to the back of the line and try the next one
+      id = pickNext();
+    }
+    guard++;
+  }
+  return id;
+}
+
+function gapSeconds(){
+  if(S.gapMode === "random"){
+    const lo = Math.min(Number(S.minGap), Number(S.maxGap));
+    const hi = Math.max(Number(S.minGap), Number(S.maxGap));
+    return lo + Math.random()*(hi-lo);
+  }
+  return Number(S.fixedGap);
+}
+
+function countdown(seconds, label, onDone){
+  const total = Math.max(0.05, seconds) * 1000;
+  const startedAt = Date.now();
+  clearInterval(tickId);
+  tickId = setInterval(()=>{
+    const elapsed = Date.now() - startedAt;
+    const left = Math.max(0, total - elapsed);
+    elBar.style.width = Math.min(100, (elapsed/total)*100).toFixed(1) + "%";
+    elNextIn.textContent = label + " " + (left/1000).toFixed(1) + "s";
+    if(left <= 0){
+      clearInterval(tickId);
+      elNextIn.innerHTML = "&nbsp;";
+      elBar.style.width = "0%";
+      onDone();
+    }
+  }, 100);
+}
+
+function callNext(){
+  if(!running) return;
+  const id = nextCommandId();
+  if(!id){
+    finish("Sequence complete.");
+    return;
+  }
+  lastId = id;
+  calledCount++;
+  const cmd = cmdById(id);
+  if(!cmd){ callNext(); return; }
+
+  if(activeHold && id === activeHold.releaseId){
+    activeHold = null;
+  }else{
+    const sp = pairByStart(id);
+    if(sp && !activeHold){
+      const rel = cmdById(sp.releaseId);
+      if(sp.mode === "hold"){
+        activeHold = {pairId:sp.id, releaseId:sp.releaseId, startLabel:cmd.label,
+          releaseLabel: rel ? rel.label : "", remaining: randInt(sp.minHold, sp.maxHold), forceNow:false};
+      }else{
+        activeHold = {pairId:sp.id, releaseId:sp.releaseId, startLabel:cmd.label,
+          releaseLabel: rel ? rel.label : "", remaining:0, forceNow:true};
+      }
+    }else if(activeHold && !activeHold.forceNow){
+      activeHold.remaining--;
+      if(activeHold.remaining <= 0) activeHold.forceNow = true;
+    }
+  }
+  updateHoldBanner();
+
+  elStage.textContent = "Command " + calledCount;
+  elCommand.textContent = cmd.label;
+  elCommand.classList.add("speaking");
+  elStep.textContent = "";
+  elBar.style.width = "100%";
+  elNextIn.innerHTML = "&nbsp;";
+
+  history.unshift(cmd.label);
+  if(history.length > 60) history.pop();
+  renderHistory();
+
+  speak(cmd.say, ()=>{
+    elCommand.classList.remove("speaking");
+    if(!running) return;
+    const lim = Number(S.limit) || 0;
+    if(lim > 0 && calledCount >= lim){
+      finish("Done — " + lim + " commands called.");
+      return;
+    }
+    const g = gapSeconds();
+    elStep.textContent = S.gapMode === "random" ? "Random gap: " + g.toFixed(1) + "s" : "";
+    countdown(g, "Next in", callNext);
+  });
+}
+
+function updateHoldBanner(){
+  if(activeHold){
+    showBanner("HOLD — " + activeHold.startLabel + ": stay in position until \u201c" + activeHold.releaseLabel + "\u201d is called.");
+  }else{
+    hideBanner();
+  }
+}
+
+function start(){
+  if(running) return;
+  if(!enabledIds().length){
+    showBanner("Turn at least one command on before starting.");
+    return;
+  }
+  running = true;
+  calledCount = 0; lastId = null; qIndex = 0; history = []; activeHold = null;
+  queue = buildQueue();
+  renderHistory();
+  startBtn.disabled = true; stopBtn.disabled = false;
+  hideBanner();
+  requestWakeLock();
+
+  // Unlock audio inside the user gesture, then run the lead-in.
+  const lead = Number(S.leadIn) || 0;
+  if(lead > 0){
+    elStage.textContent = "Get set";
+    elCommand.textContent = "STAND BY";
+    elStep.textContent = "First command coming up.";
+    speak("Stand by.", ()=>{});
+    countdown(lead, "Starting in", callNext);
+  }else{
+    elStage.textContent = "Get set";
+    elCommand.textContent = "STAND BY";
+    callNext();
+  }
+}
+
+function finish(msg){
+  running = false;
+  activeHold = null;
+  clearInterval(tickId); clearTimeout(timerId);
+  try{ synth && synth.cancel(); }catch(e){}
+  releaseWakeLock();
+  startBtn.disabled = false; stopBtn.disabled = true;
+  elStage.textContent = "Ready";
+  elCommand.classList.remove("speaking");
+  elCommand.textContent = "—";
+  elStep.textContent = msg || "Stopped.";
+  elBar.style.width = "0%";
+  elNextIn.innerHTML = "&nbsp;";
+  hideBanner();
+}
+
+function stop(){ finish("Stopped after " + calledCount + " command" + (calledCount===1?"":"s") + "."); }
+
+function renderHistory(){
+  const box = $("history");
+  if(!history.length){ box.innerHTML = '<p class="empty">Nothing called yet.</p>'; return; }
+  let n = calledCount;
+  const rows = history.map(h => "<tr><td>" + (n--) + "</td><td>" + h + "</td></tr>").join("");
+  box.innerHTML = '<table class="log"><tbody>' + rows + "</tbody></table>";
+}
+
+function showBanner(msg){ elBanner.textContent = msg; elBanner.hidden = false; }
+function hideBanner(){ elBanner.hidden = true; }
+
+/* Screen wake lock so the phone doesn't sleep mid-run */
+let wakeLock = null;
+async function requestWakeLock(){
+  try{
+    if("wakeLock" in navigator){ wakeLock = await navigator.wakeLock.request("screen"); }
+  }catch(e){}
+}
+function releaseWakeLock(){ try{ wakeLock && wakeLock.release(); }catch(e){} wakeLock = null; }
+document.addEventListener("visibilitychange", ()=>{
+  if(document.visibilityState === "visible" && running) requestWakeLock();
+});
+
+/* ------------------------------------------------------------------
+   Command list UI
+   ------------------------------------------------------------------ */
+function renderCommands(){
+  const host = $("cmdList");
+  host.innerHTML = "";
+  const bank = allCommands();
+  GROUPS.forEach(([key,title])=>{
+    const items = bank.filter(c=>c.g===key);
+    if(!items.length) return;
+    const h = document.createElement("div");
+    h.className = "group-title";
+    h.innerHTML = title;
+    host.appendChild(h);
+    const grid = document.createElement("div");
+    grid.className = "cmds";
+    items.forEach(c=>{
+      const lab = document.createElement("label");
+      lab.className = "cmd";
+      const box = document.createElement("input");
+      box.type = "checkbox"; box.checked = S.enabled.includes(c.id); box.dataset.id = c.id;
+      const sp = document.createElement("span");
+      sp.textContent = c.label;
+      lab.appendChild(box); lab.appendChild(sp);
+      if(!box.checked) lab.classList.add("off");
+      box.addEventListener("change", ()=>{
+        if(box.checked){ if(!S.enabled.includes(c.id)) S.enabled.push(c.id); }
+        else { S.enabled = S.enabled.filter(x=>x!==c.id); }
+        lab.classList.toggle("off", !box.checked);
+        updateCount(); saveSettings();
+      });
+      const help = document.createElement("button");
+      help.type = "button"; help.className = "del";
+      help.textContent = "?";
+      help.title = "Show help video";
+      help.setAttribute("aria-label", "Help video for " + c.label);
+      help.style.marginLeft = "auto";
+      help.addEventListener("click", ev=>{
+        ev.preventDefault(); ev.stopPropagation();
+        helpOpenId = c.id;
+        $("helpCard").classList.remove("collapsed");
+        $("helpFilter").value = "";
+        renderHelp();
+        $("helpDetail").scrollIntoView({behavior:"smooth", block:"center"});
+      });
+      lab.appendChild(help);
+      if(c.custom){
+        const del = document.createElement("button");
+        del.type = "button"; del.className = "del"; del.textContent = "\u2715";
+        del.title = "Remove this command";
+        del.style.marginLeft = "0";
+        del.setAttribute("aria-label", "Remove " + c.label);
+        del.addEventListener("click", ev=>{
+          ev.preventDefault(); ev.stopPropagation();
+          S.custom = S.custom.filter(x=>x.id !== c.id);
+          S.enabled = S.enabled.filter(x=>x !== c.id);
+          delete S.videos[c.id];
+          const hadPair = S.pairs.some(p=>p.startId===c.id || p.releaseId===c.id);
+          S.pairs = S.pairs.filter(p=>p.startId!==c.id && p.releaseId!==c.id);
+          if(hadPair && activeHold && (activeHold.releaseId===c.id)){ activeHold=null; }
+          if(helpOpenId === c.id) helpOpenId = null;
+          renderCommands(); renderHelp(); saveSettings();
+          updateHoldBanner();
+        });
+        lab.appendChild(del);
+      }
+      grid.appendChild(lab);
+    });
+    host.appendChild(grid);
+  });
+  updateCount();
+  refreshPairUI();
+}
+
+function updateCount(){
+  const total = allCommands().length;
+  const extra = S.custom.length ? " (" + S.custom.length + " added by you)" : "";
+  $("enabledCount").textContent = S.enabled.length + " of " + total + " commands turned on" + extra + ".";
+}
+
+/* ---- Adding your own commands ---- */
+function addCustom(raw){
+  const parts = String(raw).split(/[\n;\/]+/).map(s=>s.trim()).filter(Boolean);
+  if(!parts.length) return 0;
+  let added = 0;
+  parts.forEach(text=>{
+    const label = text.slice(0,120);
+    const exists = allCommands().some(c => c.label.toLowerCase() === label.toLowerCase());
+    if(exists) return;
+    const id = "c" + Date.now().toString(36) + Math.random().toString(36).slice(2,7);
+    S.custom.push({id:id, label:label, say:label});
+    S.enabled.push(id);
+    added++;
+  });
+  return added;
+}
+
+$("addBtn").addEventListener("click", ()=>{
+  const input = $("customInput");
+  const n = addCustom(input.value);
+  if(n){
+    input.value = "";
+    renderCommands(); saveSettings();
+    $("listCard").classList.remove("collapsed");
+  }else if(input.value.trim()){
+    input.select();
+  }
+  input.focus();
+});
+$("customInput").addEventListener("keydown", e=>{
+  if(e.key === "Enter"){ e.preventDefault(); $("addBtn").click(); }
+});
+
+const PRESETS = {
+  all:      () => allCommands().map(c=>c.id),
+  none:     () => [],
+  facing:   () => COMMANDS.filter(c=>c.g==="facing").map(c=>c.id),
+  marching: () => COMMANDS.filter(c=>c.g==="marching"||c.g==="column").map(c=>c.id),
+  stationary:()=> COMMANDS.filter(c=>c.g==="stationary"||c.g==="facing").map(c=>c.id),
+  column:   () => COMMANDS.filter(c=>c.g==="column").map(c=>c.id)
+};
+document.querySelectorAll("[data-preset]").forEach(b=>{
+  b.addEventListener("click", ()=>{
+    S.enabled = PRESETS[b.dataset.preset]();
+    renderCommands(); saveSettings();
+  });
+});
+
+/* ------------------------------------------------------------------
+   Help & video reference
+   ------------------------------------------------------------------ */
+let helpOpenId = null;
+
+function safeUrl(raw){
+  const s = String(raw || "").trim();
+  if(!s) return "";
+  const withScheme = /^https?:\/\//i.test(s) ? s : "https://" + s;
+  try{
+    const u = new URL(withScheme);
+    if(u.protocol !== "http:" && u.protocol !== "https:") return "";
+    return u.href;
+  }catch(e){ return ""; }
+}
+
+/* Turn a normal share link into something that can play inline */
+function embedUrl(url){
+  try{
+    const u = new URL(url);
+    const h = u.hostname.replace(/^www\./, "");
+    if(h === "youtube.com" || h === "m.youtube.com" || h === "youtube-nocookie.com"){
+      if(u.pathname.startsWith("/embed/")) return u.href;
+      if(u.pathname.startsWith("/shorts/")) return "https://www.youtube.com/embed/" + u.pathname.split("/")[2];
+      const v = u.searchParams.get("v");
+      if(v) return "https://www.youtube.com/embed/" + v;
+    }
+    if(h === "youtu.be"){
+      const id = u.pathname.slice(1);
+      if(id) return "https://www.youtube.com/embed/" + id;
+    }
+    if(h === "vimeo.com"){
+      const id = u.pathname.split("/").filter(Boolean)[0];
+      if(/^\d+$/.test(id)) return "https://player.vimeo.com/video/" + id;
+    }
+    if(h === "drive.google.com"){
+      const m = u.pathname.match(/\/file\/d\/([^/]+)/);
+      if(m) return "https://drive.google.com/file/d/" + m[1] + "/preview";
+    }
+  }catch(e){}
+  return "";
+}
+
+function youtubeSearchUrl(label){
+  const q = label.replace(/[,]/g, "") + " army drill and ceremony demonstration";
+  return "https://www.youtube.com/results?search_query=" + encodeURIComponent(q);
+}
+
+function renderHelpGrid(){
+  const host = $("helpGrid");
+  const filter = ($("helpFilter").value || "").trim().toLowerCase();
+  host.innerHTML = "";
+  const items = allCommands().filter(c => !filter || c.label.toLowerCase().includes(filter));
+  if(!items.length){
+    host.innerHTML = '<p class="empty">Nothing matches that.</p>';
+    return;
+  }
+  items.forEach(c=>{
+    const b = document.createElement("button");
+    b.type = "button"; b.className = "hbtn";
+    b.setAttribute("aria-pressed", String(helpOpenId === c.id));
+    const dot = document.createElement("span");
+    dot.className = "dot" + (S.videos[c.id] ? " has" : "");
+    const t = document.createElement("span");
+    t.textContent = c.label;
+    b.appendChild(dot); b.appendChild(t);
+    b.addEventListener("click", ()=>{
+      helpOpenId = (helpOpenId === c.id) ? null : c.id;
+      renderHelpGrid(); renderHelpDetail();
+      if(helpOpenId) $("helpDetail").scrollIntoView({behavior:"smooth", block:"nearest"});
+    });
+    host.appendChild(b);
+  });
+}
+
+function renderHelpDetail(){
+  const box = $("helpDetail");
+  if(!helpOpenId){ box.hidden = true; box.innerHTML = ""; return; }
+  const cmd = cmdById(helpOpenId);
+  if(!cmd){ helpOpenId = null; box.hidden = true; return; }
+  const url = S.videos[cmd.id] || "";
+  const emb = url ? embedUrl(url) : "";
+  box.hidden = false;
+  box.innerHTML = "";
+
+  const h = document.createElement("h3");
+  h.textContent = cmd.label;
+  const meta = document.createElement("p");
+  meta.className = "meta";
+  meta.textContent = cmd.custom ? "Added by you" : "On the regulation card";
+  box.appendChild(h); box.appendChild(meta);
+
+  if(emb){
+    const f = document.createElement("div");
+    f.className = "frame";
+    const ifr = document.createElement("iframe");
+    ifr.src = emb;
+    ifr.allow = "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen";
+    ifr.allowFullscreen = true;
+    ifr.loading = "lazy";
+    ifr.title = cmd.label + " demonstration";
+    f.appendChild(ifr);
+    box.appendChild(f);
+  }else{
+    const nv = document.createElement("div");
+    nv.className = "novid";
+    nv.textContent = url
+      ? "That link can't play inline — open it with the button below."
+      : "No video pinned to this command yet. Paste a link below, or search for one.";
+    box.appendChild(nv);
+  }
+
+  const links = document.createElement("div");
+  links.className = "toolbar";
+  if(url){
+    const a = document.createElement("a");
+    a.className = "chip"; a.href = url; a.target = "_blank"; a.rel = "noopener noreferrer";
+    a.textContent = "Open video in new tab";
+    links.appendChild(a);
+  }
+  const search = document.createElement("a");
+  search.className = "chip"; search.href = youtubeSearchUrl(cmd.label);
+  search.target = "_blank"; search.rel = "noopener noreferrer";
+  search.textContent = "Search YouTube for this";
+  links.appendChild(search);
+  if(url){
+    const rm = document.createElement("button");
+    rm.type = "button"; rm.className = "chip"; rm.textContent = "Remove video";
+    rm.addEventListener("click", ()=>{
+      delete S.videos[cmd.id];
+      saveSettings(); renderHelpGrid(); renderHelpDetail();
+    });
+    links.appendChild(rm);
+  }
+  box.appendChild(links);
+
+  const row = document.createElement("div");
+  row.className = "addrow";
+  const inp = document.createElement("input");
+  inp.type = "text"; inp.placeholder = url ? "Replace the video link…" : "Paste a video link…";
+  inp.value = ""; inp.autocomplete = "off"; inp.spellcheck = false;
+  const btn = document.createElement("button");
+  btn.type = "button"; btn.className = "btn"; btn.textContent = "Save";
+  const save = ()=>{
+    const clean = safeUrl(inp.value);
+    if(!clean){ inp.select(); return; }
+    S.videos[cmd.id] = clean;
+    saveSettings(); renderHelpGrid(); renderHelpDetail();
+  };
+  btn.addEventListener("click", save);
+  inp.addEventListener("keydown", e=>{ if(e.key === "Enter"){ e.preventDefault(); save(); } });
+  row.appendChild(inp); row.appendChild(btn);
+  box.appendChild(row);
+}
+
+function renderHelp(){ renderHelpGrid(); renderHelpDetail(); }
+
+$("helpFilter").addEventListener("input", renderHelpGrid);
+
+$("helpAddBtn").addEventListener("click", ()=>{
+  const nameEl = $("helpNewName"), urlEl = $("helpNewUrl");
+  const name = nameEl.value.trim();
+  if(!name){ nameEl.focus(); return; }
+  const existing = allCommands().find(c => c.label.toLowerCase() === name.toLowerCase());
+  let id;
+  if(existing){
+    id = existing.id;
+  }else{
+    addCustom(name);
+    const made = allCommands().find(c => c.label.toLowerCase() === name.toLowerCase());
+    if(!made) return;
+    id = made.id;
+  }
+  const clean = safeUrl(urlEl.value);
+  if(clean) S.videos[id] = clean;
+  nameEl.value = ""; urlEl.value = "";
+  helpOpenId = id;
+  renderCommands(); renderHelp(); saveSettings();
+  $("helpDetail").scrollIntoView({behavior:"smooth", block:"nearest"});
+});
+
+/* ---- Library sharing ---- */
+$("exportBtn").addEventListener("click", ()=>{
+  const payload = {v:1, videos:{}, names:{}};
+  Object.keys(S.videos).forEach(id=>{
+    const c = cmdById(id);
+    if(!c) return;
+    payload.videos[c.label] = S.videos[id];
+  });
+  const code = JSON.stringify(payload);
+  $("shareBox").value = code;
+  $("shareBox").select();
+  try{ navigator.clipboard && navigator.clipboard.writeText(code); }catch(e){}
+  $("exportBtn").textContent = "Copied \u2713";
+  setTimeout(()=>{ $("exportBtn").textContent = "Copy library"; }, 1600);
+});
+
+$("importBtn").addEventListener("click", ()=>{
+  const box = $("shareBox");
+  let data;
+  try{ data = JSON.parse(box.value.trim()); }
+  catch(e){ box.select(); $("importBtn").textContent = "Bad code"; setTimeout(()=>{$("importBtn").textContent="Load library";},1600); return; }
+  if(!data || !data.videos || typeof data.videos !== "object"){ box.select(); return; }
+  let n = 0;
+  Object.keys(data.videos).forEach(label=>{
+    const clean = safeUrl(data.videos[label]);
+    if(!clean) return;
+    let c = allCommands().find(x => x.label.toLowerCase() === String(label).toLowerCase());
+    if(!c){
+      addCustom(label);
+      c = allCommands().find(x => x.label.toLowerCase() === String(label).toLowerCase());
+    }
+    if(c){ S.videos[c.id] = clean; n++; }
+  });
+  box.value = "";
+  renderCommands(); renderHelp(); saveSettings();
+  $("importBtn").textContent = "Loaded " + n;
+  setTimeout(()=>{ $("importBtn").textContent = "Load library"; }, 1800);
+});
+
+$("clearVidBtn").addEventListener("click", ()=>{
+  if(!Object.keys(S.videos).length) return;
+  S.videos = {};
+  saveSettings(); renderHelp();
+});
+
+/* ------------------------------------------------------------------
+   Pairs & holds
+   ------------------------------------------------------------------ */
+let pairModeUI = "instant";
+
+function populatePairSelects(){
+  const startSel = $("pairStart"), relSel = $("pairRelease");
+  const items = allCommands();
+  const pairedStarts = new Set(S.pairs.map(p=>p.startId));
+  const prevStart = startSel.value, prevRel = relSel.value;
+  startSel.innerHTML = ""; relSel.innerHTML = "";
+  items.forEach(c=>{
+    if(!pairedStarts.has(c.id)){
+      const o = document.createElement("option");
+      o.value = c.id; o.textContent = c.label;
+      startSel.appendChild(o);
+    }
+    const o2 = document.createElement("option");
+    o2.value = c.id; o2.textContent = c.label;
+    relSel.appendChild(o2);
+  });
+  if([...startSel.options].some(o=>o.value===prevStart)) startSel.value = prevStart;
+  if([...relSel.options].some(o=>o.value===prevRel)) relSel.value = prevRel;
+}
+
+function renderPairsList(){
+  const host = $("pairsList");
+  if(!S.pairs.length){ host.innerHTML = '<p class="empty">No pairs set yet — add one below.</p>'; return; }
+  host.innerHTML = "";
+  S.pairs.forEach(p=>{
+    const s = cmdById(p.startId), r = cmdById(p.releaseId);
+    const row = document.createElement("div");
+    row.className = "cmd"; row.style.cursor = "default";
+    const label = document.createElement("span");
+    label.textContent = (s?s.label:"?") + "  \u2192  " + (r?r.label:"?") + "   \u00b7   " +
+      (p.mode === "hold" ? ("Hold test, " + p.minHold + "\u2013" + p.maxHold + " commands") : "Instant");
+    row.appendChild(label);
+    const del = document.createElement("button");
+    del.type = "button"; del.className = "del"; del.textContent = "\u2715";
+    del.title = "Remove pair"; del.style.marginLeft = "auto";
+    del.setAttribute("aria-label", "Remove pair " + (s?s.label:"") + " to " + (r?r.label:""));
+    del.addEventListener("click", ()=>{
+      S.pairs = S.pairs.filter(x=>x.id !== p.id);
+      if(activeHold && activeHold.pairId === p.id){ activeHold = null; updateHoldBanner(); }
+      refreshPairUI(); saveSettings();
+    });
+    row.appendChild(del);
+    host.appendChild(row);
+  });
+}
+
+function refreshPairUI(){ populatePairSelects(); renderPairsList(); }
+
+document.querySelectorAll("[data-pairmode]").forEach(b=>{
+  b.addEventListener("click", ()=>{
+    pairModeUI = b.dataset.pairmode;
+    document.querySelectorAll("[data-pairmode]").forEach(x=>
+      x.setAttribute("aria-pressed", String(x.dataset.pairmode === pairModeUI)));
+    $("pairHoldRow").hidden = pairModeUI !== "hold";
+  });
+});
+
+$("pairAddBtn").addEventListener("click", ()=>{
+  const startId = $("pairStart").value, releaseId = $("pairRelease").value;
+  if(!startId || !releaseId || startId === releaseId) return;
+  if(S.pairs.some(p=>p.startId === startId)) return; // already spoken for
+  const minH = Math.max(1, Math.min(20, Number($("pairMin").value) || 2));
+  const maxH = Math.max(minH, Math.min(20, Number($("pairMax").value) || 5));
+  S.pairs.push({
+    id: "p" + Date.now().toString(36) + Math.random().toString(36).slice(2,6),
+    startId, releaseId, mode: pairModeUI, minHold: minH, maxHold: maxH
+  });
+  refreshPairUI(); saveSettings();
+});
+
+/* ------------------------------------------------------------------
+   Settings UI wiring
+   ------------------------------------------------------------------ */
+function seg(attr, key, after){
+  document.querySelectorAll("[data-"+attr+"]").forEach(b=>{
+    b.addEventListener("click", ()=>{
+      S[key] = b.dataset[attr];
+      document.querySelectorAll("[data-"+attr+"]").forEach(x=>
+        x.setAttribute("aria-pressed", String(x.dataset[attr]===S[key])));
+      if(after) after();
+      saveSettings();
+    });
+  });
+  document.querySelectorAll("[data-"+attr+"]").forEach(x=>
+    x.setAttribute("aria-pressed", String(x.dataset[attr]===S[key])));
+}
+
+function syncGapMode(){
+  $("fixedRow").hidden = S.gapMode !== "fixed";
+  $("randomRow").hidden = S.gapMode !== "random";
+}
+const ORDER_HINTS = {
+  card:"Follows the official card, step 1 through 59, including the repeats. Commands you switch off are skipped.",
+  random:"Picks a command at random every time and avoids calling the same one twice in a row. Best for reacting without predicting.",
+  shuffle:"Every enabled command gets called once in a scrambled order before any repeats — good for covering the whole sheet."
+};
+function syncOrder(){
+  $("orderHint").textContent = ORDER_HINTS[S.order] || "";
+  $("loopRow").hidden = S.order === "random";
+}
+seg("gapmode","gapMode",syncGapMode);
+seg("order","order",syncOrder);
+syncGapMode(); syncOrder();
+
+function slider(id, key, fmt){
+  const el = $(id), out = $(id+"Val");
+  el.value = S[key];
+  const draw = ()=>{ out.textContent = fmt(Number(el.value)); };
+  draw();
+  el.addEventListener("input", ()=>{ S[key] = Number(el.value); draw(); saveSettings(); });
+}
+slider("fixedGap","fixedGap", v=>v.toFixed(1)+"s");
+slider("leadIn","leadIn",   v=>v.toFixed(0)+"s");
+slider("volume","volume",   v=>Math.round(v*100)+"%");
+slider("rate","rate",       v=>v.toFixed(2)+"x");
+slider("pitch","pitch",     v=>v.toFixed(2));
+
+function num(id, key){
+  const el = $(id);
+  el.value = S[key];
+  el.addEventListener("change", ()=>{
+    let v = Number(el.value);
+    if(!isFinite(v) || v < 0) v = 0;
+    S[key] = v; el.value = v; saveSettings();
+  });
+}
+num("minGap","minGap"); num("maxGap","maxGap"); num("limit","limit");
+
+$("loopChk").checked = !!S.loop;
+$("loopChk").addEventListener("change", e=>{ S.loop = e.target.checked; saveSettings(); });
+
+$("voiceSel").addEventListener("change", e=>{ S.voiceURI = e.target.value; saveSettings(); });
+$("testBtn").addEventListener("click", ()=> speak("Platoon, ATTENTION. Forward, MARCH.", null));
+$("resetVoice").addEventListener("click", ()=>{
+  S.volume = DEFAULTS.volume; S.rate = DEFAULTS.rate; S.pitch = DEFAULTS.pitch; S.voiceURI = "";
+  $("volume").value = S.volume; $("rate").value = S.rate; $("pitch").value = S.pitch;
+  $("volumeVal").textContent = "100%"; $("rateVal").textContent = "1.05x"; $("pitchVal").textContent = "0.85";
+  $("voiceSel").value = ""; saveSettings();
+});
+
+/* Collapsible panels */
+document.querySelectorAll("section.card > h2").forEach(h=>{
+  h.addEventListener("click", ()=> h.parentElement.classList.toggle("collapsed"));
+});
+
+/* Theme toggle */
+function applyTheme(){
+  if(S.theme === "auto") document.documentElement.removeAttribute("data-theme");
+  else document.documentElement.setAttribute("data-theme", S.theme);
+}
+applyTheme();
+$("themeBtn").addEventListener("click", ()=>{
+  S.theme = S.theme === "auto" ? "dark" : S.theme === "dark" ? "light" : "auto";
+  applyTheme(); saveSettings();
+  $("themeBtn").textContent = "Theme: " + S.theme;
+  setTimeout(()=>{ $("themeBtn").textContent = "Theme"; }, 1400);
+});
+
+/* Buttons + keyboard */
+startBtn.addEventListener("click", start);
+stopBtn.addEventListener("click", stop);
+document.addEventListener("keydown", e=>{
+  if(e.code === "Space" && !/input|select|textarea|button/i.test(e.target.tagName)){
+    e.preventDefault();
+    running ? stop() : start();
+  }
+});
+
+renderCommands();
+renderHelp();
+
+if(!synth){
+  showBanner("This browser can't speak out loud. Try Chrome, Safari, or Edge — the rest of the timer still works.");
+}
+</script>
+</body>
+</html>
